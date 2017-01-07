@@ -1,0 +1,34 @@
+version: '2'
+
+services:
+  opendkim:
+    image: gcavalcante8808/opendkim
+    restart: always
+    hostname: mail
+    domainname: example.com
+    environment:
+      DKIM_SHORTDOMAIN: example
+      POSTFIX_DOMAIN: example.com
+      MAIL_DOMAIN: mail.example.com
+    ports:
+     - "5500:5500"
+         
+  postfix:
+    image: gcavalcante8808/postfix
+    restart: always
+    hostname: mail
+    domainname: example.com
+    cap_add:
+     - SYS_ADMIN
+    environment:
+      DKIM_HOST: opendkim
+      DKIM_PORT: 5500
+      POSTFIX_DOMAIN: example.com
+      SASL_PASS: default
+      SASL_USER: defaultpass
+      MAIL_DOMAIN: mail.example.com
+    ports:
+     - "25:25"   
+    depends_on:
+     - opendkim
+
