@@ -1,4 +1,4 @@
-OpenDKIM Docker Image
+PostFix Docker Image
 ---------------------
 
 This is a gcavalcante8808/postfix docker image based on official debian:latest image.
