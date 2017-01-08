@@ -69,6 +69,9 @@ smtpd_sasl_auth_enable = yes
 smtpd_sasl_local_domain = ${MAIL_DOMAIN}
 smtpd_sasl_security_options = noanonymous
 
+# Encrypt All E-mails
+smtpd_tls_security_level = may
+smtp_tls_security_level = may
 # See /usr/share/doc/postfix/TLS_README.gz in the postfix-doc package for
 # information on enabling SSL in the smtp client.
 
