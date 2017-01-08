@@ -34,13 +34,21 @@ if [ -z "${DKIM_PORT}" ]; then
     DKIM_PORT=5500
 fi
 
-if [ ! -f "/etc/sasldb" ]; then
-    cd /etc
-    echo "${SASL_PASS}" | saslpasswd2 -c -f /etc/sasldb -u "${MAIL_DOMAIN}" -a smtpauth "${SASL_USER}" -p
-    chown postfix /etc/sasldb
+if [ ! -f "/var/spool/postfix/etc/sasldb2" ]; then
+    echo "${SASL_PASS}" | saslpasswd2 -p -c -f /var/spool/postfix/etc/sasldb2 -u "${POSTFIX_DOMAIN}" -a smtpauth "${SASL_USER}"
+    chmod +r postfix /var/spool/postfix/etc/sasldb2
 
-    echo "Starting Postfix Configurations"
-    echo "${HOSTNAME}" > /etc/mailname
+fi
+
+if [ ! -f "/etc/postfix/sasl/smtpd.conf" ]; then
+    echo "Configuring smtpd to use sasldb"
+    cp /etc/resolv.conf /var/spool/postfix/etc/resolv.conf
+    cat << EOT > /etc/postfix/sasl/smtpd.conf
+pwcheck_method:auxprop
+mech_list: plain login cram-md5 digest-md5
+EOT
+
+echo "Writing postfix configuration"
 cat <<EOT > /etc/postfix/main.cf
 #myorigin = /etc/mailname
 
@@ -50,8 +58,8 @@ append_dot_mydomain = no
 readme_directory = no
 
 # TLS parameters
-smtpd_tls_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
-smtpd_tls_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+smtpd_tls_cert_file=/var/spool/postfix/etc/ssl/server.pem
+smtpd_tls_key_file=/var/spool/postfix/etc/ssl/server.key
 smtpd_use_tls=yes
 smtpd_tls_session_cache_database = btree:\${data_directory}/smtpd_scache
 smtp_tls_session_cache_database = btree:\${data_directory}/smtp_scache
@@ -77,14 +85,17 @@ mailbox_size_limit = 0
 recipient_delimiter = +
 inet_interfaces = all
 
-#OpenDKIM Configurations
-milter_default_action = accept
-milter_protocol = 6
-smtpd_milters = INET:opendkim:5500
-non_smtpd_milters = INET:opendkim:5500
-
 EOT
+fi
 
+if [ ! -f "/var/spool/postfix/etc/ssl/server.pem" ]; then
+    echo "No TLS certificates Found. Copying system default snake-oil ..."
+    cp /etc/ssl/certs/ssl-cert-snakeoil.pem /var/spool/postfix/etc/ssl/server.pem
+    cp /etc/ssl/private/ssl-cert-snakeoil.key /var/spool/postfix/etc/ssl/server.key
+fi
+
+if [ ! -f "/etc/mailname" ]; then
+    echo "${HOSTNAME}" > /etc/mailname
 fi
 
 service syslog-ng start
